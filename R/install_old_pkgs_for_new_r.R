@@ -11,20 +11,32 @@
 #' @return A character vector of all packages that were not successfully installed.
 #'
 #' @export
-install_old_pkgs_for_new_r <- function(dir_old, type = "win.binary", step = 20){
+install_old_pkgs_for_new_r <- function(dir_base = "C:/Users/migue/OneDrive/Documents/R/win-library",
+                                       type = "win.binary"){
 
   # preparation
   # -----------------
 
   # check old dir exists
+  if(!dir.exists(dir_base)){
+    stop("dir_base does not exist")
+  }
+
+  version_vec <- sort(as.numeric(list.dirs(dir_base, full.names = FALSE, recursive = FALSE)))
+  n_version <- length(version_vec)
+  dir_old <- file.path(dir_base, version_vec[n_version - 1])
   if(!dir.exists(dir_old)){
-    stop("dir_old does not exist")
+    stop("calculated dir_old does not exist")
+  }
+  dir_new <- file.path(dir_base, version_vec[n_version ])
+  if(!dir.exists(dir_new)){
+    stop("calculated dir_new does not exist")
   }
 
   # send installation messages to text file to ignore them
-  sink(file = file.path(tempdir(), "install_old_pkgs_for_new_r-output.txt"),
-       type = "output")
-  on.exit(sink())
+  #sink(file = file.path(tempdir(), "install_old_pkgs_for_new_r-output.txt"),
+  #     type = "output")
+  #on.exit(sink())
 
   # initial details
   dir_new <- .libPaths()[1]
@@ -36,14 +48,13 @@ install_old_pkgs_for_new_r <- function(dir_old, type = "win.binary", step = 20){
   n_pkg_new_init <- length(pkg_vec_new)
   n_pkg_old_init <- length(pkg_vec_old)
 
-  message(paste0(n_pkg, " packages to install"))
+  print(paste0(n_pkg, " packages to install"))
 
   # caret
   # --------------
 
   if('caret' %in% pkg_vec_install){
-
-    message("installing caret")
+    print("installing caret")
     suppressMessages(suppressWarnings(invisible(try(
       install.packages(
         'caret',
@@ -54,7 +65,7 @@ install_old_pkgs_for_new_r <- function(dir_old, type = "win.binary", step = 20){
     pkg_vec_new <- list.dirs(dir_new, recursive = FALSE, full.names = FALSE)
     pkg_vec_install <- setdiff(pkg_vec_install, pkg_vec_new)
     n_installed <- n_pkg - length(pkg_vec_install)
-    message("installed ", n_installed, " packages when attempting install of caret")
+    print("installed ", n_installed, " packages when attempting install of caret")
   }
 
   # BioConductor
@@ -65,31 +76,16 @@ install_old_pkgs_for_new_r <- function(dir_old, type = "win.binary", step = 20){
 
   pkg_vec_install <- intersect(pkg_vec_install, suppressMessages(BiocManager::available()))
   n_pkg <- length(pkg_vec_install)
-  message(paste0("installing ", n_pkg, " packages from BioConductor"))
+  print(paste0("installing ", n_pkg, " packages from BioConductor"))
   k <- 1
   n_round_install <- 0
-  for(x in pkg_vec_install){
-    if(!x %in% pkg_vec_install) next
-    suppressMessages(suppressWarnings(invisible(try(
-      BiocManager::install(
-        x,
-        quiet = TRUE,
-        type = type,
-        ask = FALSE
-      )))))
-    pkg_vec_new <- list.dirs(dir_new, recursive = FALSE, full.names = FALSE)
-    pkg_vec_install <- setdiff(pkg_vec_install, pkg_vec_new)
-    n_installed <- n_pkg - length(pkg_vec_install)
-    n_installed_extra_above_round <- n_installed - n_round_install
-    if(k == 1){
-      message("attempted installation of first package from BioConductor")
-      k <- 2
-    }
-    if(n_installed_extra_above_round >= step){
-      message(paste0("gone through ", n_installed , " of ", n_pkg, " BioConductor packages"))
-      n_round_install <- (n_installed %/% step) * step
-    }
-  }
+  BiocManager::install(
+    pkg_vec_install,
+    quiet = TRUE,
+    type = type,
+    ask = FALSE
+  )
+
 
   # CRAN
   # -------------------
@@ -98,32 +94,13 @@ install_old_pkgs_for_new_r <- function(dir_old, type = "win.binary", step = 20){
   pkg_vec_install <- setdiff(pkg_vec_old, pkg_vec_new)
   pkg_vec_install <- intersect(pkg_vec_install, available.packages())
   n_pkg <- length(pkg_vec_install)
-  message(paste0("installing ", n_pkg, " packages from CRAN"))
-  n_round_install <- 0
-  k <- 1
-  pkg_vec_install <- intersect(pkg_vec_install, available.packages())
-  for(x in pkg_vec_install){
-    if(!x %in% pkg_vec_install) next
-    suppressMessages(suppressWarnings(invisible(try(
-      install.packages(
-        x,
-        dependencies = TRUE,
-        type = type,
-        quiet = TRUE
-      )))))
-    pkg_vec_new <- list.dirs(dir_new, recursive = FALSE, full.names = FALSE)
-    pkg_vec_install <- setdiff(pkg_vec_install, pkg_vec_new)
-    n_installed <- n_pkg - length(pkg_vec_install)
-    n_installed_extra_above_round <- n_installed - n_round_install
-    if(k == 1){
-      message("attempted installation of first package from CRAN")
-      k <- 2
-    }
-    if(n_installed_extra_above_round >= step){
-      message(paste0("gone through ", n_installed , " of ", n_pkg, " CRAN packages"))
-      n_round_install <- (n_installed %/% step) * step
-    }
-  }
+  print(paste0("installing ", n_pkg, " packages from CRAN"))
+  install.packages(
+    pkg_vec_install,
+    dependencies = TRUE,
+    type = type,
+    quiet = TRUE
+  )
 
 
   pkg_vec_old <- list.dirs(dir_old, recursive = FALSE, full.names = FALSE)
@@ -131,10 +108,10 @@ install_old_pkgs_for_new_r <- function(dir_old, type = "win.binary", step = 20){
   pkg_vec_install <- setdiff(pkg_vec_old, pkg_vec_new)
 
   n_pkg_installed <- length(pkg_vec_new) - n_pkg_new_init
-  message(paste0("installed ", n_pkg_installed, " packages"))
+  print(paste0("installed ", n_pkg_installed, " packages"))
 
   pkg_vec_install <- setdiff(pkg_vec_old, pkg_vec_new)
   n_pkg_remaining <- length(pkg_vec_install)
-  message(paste0(n_pkg_remaining, " packages not successfully installed"))
+  print(paste0(n_pkg_remaining, " packages not successfully installed"))
   pkg_vec_install
 }
