@@ -28,7 +28,7 @@ install_old_pkgs_for_new_r <- function(dir_base = "C:/Users/migue/OneDrive/Docum
   if(!dir.exists(dir_old)){
     stop("calculated dir_old does not exist")
   }
-  dir_new <- file.path(dir_base, version_vec[n_version ])
+  dir_new <- file.path(dir_base, version_vec[n_version])
   if(!dir.exists(dir_new)){
     stop("calculated dir_new does not exist")
   }
