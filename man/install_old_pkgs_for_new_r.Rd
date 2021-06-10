@@ -4,7 +4,10 @@
 \alias{install_old_pkgs_for_new_r}
 \title{Install R packages for new major R version}
 \usage{
-install_old_pkgs_for_new_r(dir_old)
+install_old_pkgs_for_new_r(
+  dir_base = "C:/Users/migue/OneDrive/Documents/R/win-library",
+  type = "win.binary"
+)
 }
 \arguments{
 \item{dir_old}{character. Absolute path to old R version's library (i.e. folder
